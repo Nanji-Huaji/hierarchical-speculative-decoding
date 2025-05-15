@@ -1,0 +1,4 @@
+{
+    "python.analysis.typeEvaluation.strictParameterNoneValue": false,
+    "python.analysis.typeCheckingMode": "basic"
+}

@@ -8,9 +8,7 @@ from .utils import norm_logits, sample, norm_numpy_logits
 
 
 class KVCacheCppModel:
-    def __init__(
-        self, model, temperature: float = 1, top_k: int = 0, top_p: float = 0
-    ) -> None:
+    def __init__(self, model, temperature: float = 1, top_k: int = 0, top_p: float = 0) -> None:
         self._model = model
         self._past_key_values = None
         self._prob_history = None
@@ -43,9 +41,7 @@ class KVCacheCppModel:
             if last_input_id.dim() == 1:
                 last_input_id = torch.unsqueeze(last_input_id, 0)
 
-            outputs = self._model(
-                last_input_id, past_key_values=self._past_key_values, use_cache=True
-            )
+            outputs = self._model(last_input_id, past_key_values=self._past_key_values, use_cache=True)
 
             not_cached_q = outputs.logits[:, :, : self.vocab_size]
 
@@ -53,9 +49,7 @@ class KVCacheCppModel:
                 not_cached_q = torch.unsqueeze(not_cached_q, 0)
 
             for i in range(not_cached_q.shape[-2]):
-                not_cached_q[:, i, :] = norm_logits(
-                    not_cached_q[:, i, :], self._temperature, self._top_k, self._top_p
-                )
+                not_cached_q[:, i, :] = norm_logits(not_cached_q[:, i, :], self._temperature, self._top_k, self._top_p)
 
             self._prob_history = torch.cat([self._prob_history, not_cached_q], dim=1)
 
@@ -85,9 +79,7 @@ class KVCacheCppModel:
     def _generate_llama_cpp_kseq(self, prefix: list[int], gamma: int) -> list[int]:
         x = prefix
         window_size = gamma
-        for token in self._model.generate(
-            prefix, top_k=self._top_k, top_p=self._top_p, temp=self._temperature
-        ):
+        for token in self._model.generate(prefix, top_k=self._top_k, top_p=self._top_p, temp=self._temperature):
             x.append(token)
             gamma -= 1
             if gamma == 0:
@@ -97,9 +89,7 @@ class KVCacheCppModel:
     def _generate_llama_cpp(self, prefix: list[int], gamma: int) -> list[int]:
         x = prefix
         window_size = gamma
-        for token in self._model.generate(
-            prefix, top_k=self._top_k, top_p=self._top_p, temp=self._temperature
-        ):
+        for token in self._model.generate(prefix, top_k=self._top_k, top_p=self._top_p, temp=self._temperature):
             x.append(token)
             gamma -= 1
             if gamma == 0:
@@ -207,12 +197,8 @@ class KVCacheCppModel:
         start_tokens = [first_token]
         gen_token = int(gamma / k) - 1
         if k > 1:
-            top_k_token = np.argpartition(first_logprob, -k)[
-                -k:
-            ]  # 注意这里topk是无序的
-            sorted_top_k_token = top_k_token[
-                np.argsort(first_logprob[top_k_token])[::-1]
-            ]
+            top_k_token = np.argpartition(first_logprob, -k)[-k:]  # 注意这里topk是无序的
+            sorted_top_k_token = top_k_token[np.argsort(first_logprob[top_k_token])[::-1]]
             start_tokens = sorted_top_k_token
 
         flatten_draft_k_seq_ids = []
@@ -242,9 +228,7 @@ class KVCacheCppModel:
                     # kv cache related
                     kv_cache_size = llama_cpp.llama_get_state_size(self._model.ctx)
 
-                    llama_cpp.llama_state_get_data(
-                        self._model.ctx, self.kv_cache[num][0], kv_cache_size
-                    )
+                    llama_cpp.llama_state_get_data(self._model.ctx, self.kv_cache[num][0], kv_cache_size)
 
                     self.kv_cache[num][1] = np.array(output[:-1])
                     self.kv_cache[num][2] = self._model.n_tokens
