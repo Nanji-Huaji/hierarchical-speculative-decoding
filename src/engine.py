@@ -12,17 +12,30 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 import llama_cpp
 from abc import ABC, abstractmethod
 from accelerate import Accelerator
-from .model_gpu import KVCacheModel
-from .model_cpu import KVCacheCppModel
-from .utils import seed_everything, norm_logits, sample, max_fn
+from model_gpu import KVCacheModel
+from model_cpu import KVCacheCppModel
+from utils import seed_everything, norm_logits, sample, max_fn
 import time
 
 from transformers import StoppingCriteriaList, MaxLengthCriteria
-from .model.pld.pld import greedy_search_pld
 
-from .model.rest.rest.model.utils import *
-from .model.rest.rest.model.rest_model import RestModel
-from .model.rest.rest.model.kv_cache import initialize_past_key_values
+# from .model.pld.pld import greedy_search_pld
+
+# from .model.rest.rest.model.utils import *
+# from .model.rest.rest.model.rest_model import RestModel
+# from .model.rest.rest.model.kv_cache import initialize_past_key_values
+
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from model.pld.pld import greedy_search_pld
+from model.rest.rest.model.utils import *
+from model.rest.rest.model.rest_model import RestModel
+from model.rest.rest.model.kv_cache import initialize_past_key_values
+from model.lade.utils import augment_all, config_lade
+from model.lade.decoding import CONFIG_MAP
 import draftretriever
 
 
@@ -164,8 +177,6 @@ class Decoding(ABC):
             ).eval()
             self.target_model.greedy_search_pld = greedy_search_pld.__get__(self.target_model, type(self.target_model))
         elif self.args.eval_mode == "lade":
-            from .model.lade.utils import augment_all, config_lade
-            from .model.lade.decoding import CONFIG_MAP
 
             if int(os.environ.get("USE_LADE", 0)):
                 augment_all()
